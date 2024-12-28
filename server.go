@@ -1,4 +1,4 @@
-package main
+package manty_dns
 
 import (
 	"bytes"
@@ -35,10 +35,10 @@ type DNSAnswer struct {
 	IP    [4]byte
 }
 
-func main() {
+func Start(port int, ip string) {
 	addr := net.UDPAddr{
-		Port: 54,
-		IP:   net.ParseIP("0.0.0.0"),
+		Port: port,
+		IP:   net.ParseIP(ip),
 	}
 	conn, err := net.ListenUDP("udp", &addr)
 	if err != nil {
@@ -46,7 +46,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	fmt.Println("DNS server is running on port 54")
+	fmt.Println("DNS server is running on port 53")
 
 	for {
 		buffer := make([]byte, 512)
@@ -71,7 +71,10 @@ func handleRequest(conn *net.UDPConn, buffer []byte, addr *net.UDPAddr) {
 	}
 
 	// Prepare the response
-	response := createResponse(header, buffer)
+	response, err := createResponse(header, buffer)
+	if err != nil {
+		log.Printf("Failed to create UDP response: %v", err)
+	}
 
 	// Send the response
 	_, err = conn.WriteToUDP(response, addr)
@@ -102,7 +105,7 @@ func parseQuestion(data []byte) (DNSQuestion, int) {
 	return question, offset
 }
 
-func createResponse(header DNSHeader, request []byte) []byte {
+func createResponse(header DNSHeader, request []byte) ([]byte, error) {
 	var response bytes.Buffer
 
 	// Write DNS header
@@ -130,8 +133,11 @@ func createResponse(header DNSHeader, request []byte) []byte {
 			Len:   4,
 			IP:    [4]byte{192, 0, 2, 1}, // Example IP address
 		}
-		binary.Write(&response, binary.BigEndian, answer)
+		err := binary.Write(&response, binary.BigEndian, answer)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return response.Bytes()
+	return response.Bytes(), nil
 }

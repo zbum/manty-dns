@@ -46,7 +46,7 @@ func Start(port int, ip string) {
 	}
 	defer conn.Close()
 
-	fmt.Println("DNS server is running on port 53")
+	fmt.Printf("DNS server is running on port %d\n", port)
 
 	for {
 		buffer := make([]byte, 512)
